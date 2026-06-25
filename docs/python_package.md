@@ -60,3 +60,26 @@ The above values can also be conveniently queried from the command line via the 
 ```{code-cell} ipython3
 !iqm-qdmi --lib_path
 ```
+
+## Sampler and Estimator CLI Utilities
+
+If you install the package with the `qiskit` extra, the following additional command-line scripts are exposed:
+
+- `iqm-sampler` (see the {py:mod}`~iqm.qdmi.sampler` entry point module): Samples a serialized QPY circuit on the specified backend.
+- `iqm-estimator` (see the {py:mod}`~iqm.qdmi.estimator` entry point module): Variational Quantum Eigensolver (VQE) parameter estimation for a serialized ansatz and observable.
+
+### `iqm-sampler` Usage
+
+For example, to execute a QPY circuit file (`bell.qpy`):
+
+```console
+$ iqm-sampler bell.qpy --shots 128
+```
+
+### `iqm-estimator` Usage
+
+To run a parameter estimation job:
+
+```console
+$ iqm-estimator ansatz.qpy observable.pkl --maxiter 10
+```
