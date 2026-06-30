@@ -17,9 +17,7 @@
 
 """Python wrapper for exposing the IQM QDMI device library."""
 
-from importlib.metadata import distribution
-from pathlib import Path
-
+from ._paths import IQM_QDMI_CMAKE_DIR, IQM_QDMI_INCLUDE_DIR, IQM_QDMI_LIBRARY_PATH
 from ._version import version as __version__
 
 __all__ = ["IQM_QDMI_CMAKE_DIR", "IQM_QDMI_INCLUDE_DIR", "IQM_QDMI_LIBRARY_PATH", "__version__"]
@@ -29,29 +27,14 @@ def __dir__() -> list[str]:
     return __all__
 
 
-dist = distribution("iqm-qdmi")
-located_include_dir = dist.locate_file("iqm/qdmi/data/include/iqm_qdmi")
-resolved_include_dir = Path(str(located_include_dir)).resolve(strict=True)
+# If pickling is not supported by Qiskit's DataBin container, patch it.
+# This shim is for compatibility with older Qiskit versions and can be removed once Qiskit >= 2.1.0 is required.
+try:
+    import pickle  # noqa: S403
 
-IQM_QDMI_DATA = resolved_include_dir.parents[1]
-assert IQM_QDMI_DATA.exists(), f"IQM_QDMI_DATA does not exist: {IQM_QDMI_DATA}"
+    from qiskit.primitives.containers.data_bin import DataBin
 
-IQM_QDMI_LIBRARY_DIR = IQM_QDMI_DATA / "lib"
-if not IQM_QDMI_LIBRARY_DIR.exists():
-    IQM_QDMI_LIBRARY_DIR = IQM_QDMI_DATA / "lib64"
-assert IQM_QDMI_LIBRARY_DIR.exists(), f"IQM_QDMI_LIBRARY_DIR does not exist: {IQM_QDMI_LIBRARY_DIR}"
-
-# the library is the sole file in the lib directory
-library_files = list(IQM_QDMI_LIBRARY_DIR.glob("*iqm-qdmi-device*"))
-if not library_files:
-    msg = f"No IQM QDMI library found in: {IQM_QDMI_LIBRARY_DIR}"
-    raise FileNotFoundError(msg)
-IQM_QDMI_LIBRARY_PATH = library_files[0]
-
-IQM_QDMI_INCLUDE_DIR = IQM_QDMI_DATA / "include"
-assert IQM_QDMI_INCLUDE_DIR.exists(), f"IQM_QDMI_INCLUDE_DIR does not exist: {IQM_QDMI_INCLUDE_DIR}"
-
-IQM_QDMI_CMAKE_DIR = IQM_QDMI_DATA / "share" / "cmake"
-assert IQM_QDMI_CMAKE_DIR.exists(), f"IQM_QDMI_CMAKE_DIR does not exist: {IQM_QDMI_CMAKE_DIR}"
-
-del dist, located_include_dir, resolved_include_dir
+    pickle.loads(pickle.dumps(DataBin()))  # noqa: S301
+except NotImplementedError:
+    # Bypass the immutable __setattr__ restriction during unpickling
+    DataBin.__setattr__ = object.__setattr__

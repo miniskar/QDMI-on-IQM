@@ -35,6 +35,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <iterator>
@@ -58,7 +59,9 @@
 struct IQM_QDMI_Operation_impl_d;
 struct IQM_QDMI_Site_impl_d;
 
+namespace {
 enum class IQM_QDMI_DEVICE_SESSION_STATUS : uint8_t { ALLOCATED, INITIALIZED };
+}
 
 /**
  * @brief Implementation of the IQM_QDMI_Device_Session structure.
@@ -285,6 +288,38 @@ int IQM_QDMI_device_session_alloc(IQM_QDMI_Device_Session *session) {
 }
 
 namespace {
+std::optional<std::string> Get_nonempty_env_var(const char *name) {
+  if (const char *value = std::getenv(name);
+      value != nullptr && value[0] != '\0') {
+    return std::string{value};
+  }
+  return std::nullopt;
+}
+
+void Apply_environment_session_defaults(IQM_QDMI_Device_Session session) {
+  const auto env_base_url = Get_nonempty_env_var("IQM_BASE_URL");
+  LOG_DEBUG(std::string("IQM_BASE_URL environment default is ") +
+            (env_base_url.has_value() ? "set" : "unset"));
+  if (session->base_url_.empty() && env_base_url.has_value()) {
+    session->base_url_ = *env_base_url;
+  }
+
+  const auto env_qc_id = Get_nonempty_env_var("IQM_QC_ID");
+  LOG_DEBUG(std::string("IQM_QC_ID environment default is ") +
+            (env_qc_id.has_value() ? "set" : "unset"));
+  if (!session->quantum_computer_id_.has_value() && env_qc_id.has_value()) {
+    session->quantum_computer_id_ = env_qc_id;
+  }
+
+  const auto env_qc_alias = Get_nonempty_env_var("IQM_QC_ALIAS");
+  LOG_DEBUG(std::string("IQM_QC_ALIAS environment default is ") +
+            (env_qc_alias.has_value() ? "set" : "unset"));
+  if (!session->quantum_computer_alias_.has_value() &&
+      env_qc_alias.has_value()) {
+    session->quantum_computer_alias_ = env_qc_alias;
+  }
+}
+
 int Process_static_quantum_architecture(IQM_QDMI_Device_Session session) {
   LOG_INFO("Processing static quantum architecture");
 
@@ -602,6 +637,7 @@ IQM_QDMI_EXPORT int IQM_QDMI_device_session_init_with_http_client(
   }
 
   LOG_INFO("Initializing device session");
+  Apply_environment_session_defaults(session);
   if (session->base_url_.empty()) {
     LOG_ERROR("Base URL not set");
     return QDMI_ERROR_FATAL;
@@ -632,10 +668,14 @@ IQM_QDMI_EXPORT int IQM_QDMI_device_session_init_with_http_client(
   const auto cocos_health_url =
       session->api_config_->url(iqm::API_ENDPOINT::COCOS_HEALTH);
   std::string cocos_health_response;
-  const auto status = session->http_client_->get(
+  const auto status = session->http_client_->get_optional(
       cocos_health_url, session->token_manager_->get_bearer_token(),
       cocos_health_response);
   session->supports_calibration_jobs_ = (status == QDMI_SUCCESS);
+  if (!session->supports_calibration_jobs_) {
+    LOG_DEBUG("Calibration jobs are unavailable on this backend; "
+              "optional COCOS health check failed");
+  }
 
   LOG_INFO("Device session initialized successfully");
   return QDMI_SUCCESS;

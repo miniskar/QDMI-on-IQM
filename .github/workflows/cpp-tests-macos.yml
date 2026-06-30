@@ -21,7 +21,7 @@ on:
         default: "emerald:mock"
         type: string
     secrets:
-      RESONANCE_API_KEY:
+      IQM_TOKEN:
         required: true
 
 permissions:
@@ -36,10 +36,10 @@ jobs:
       CTEST_PARALLEL_LEVEL: 4
       FORCE_COLOR: 3
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       # Set up ccache for faster C++ builds
       - name: Setup ccache
-        uses: Chocobo1/setup-ccache-action@7e813cbdf161f77737576f5c370b2810dbae058c # v1.5.7
+        uses: Chocobo1/setup-ccache-action@802ec72ba1d54bbf75c52f45367253d6abec30f5 # v1.5.8
         with:
           prepend_symlinks_to_path: false
           override_cache_key: c++-tests-${{ inputs.runs-on }}-${{ inputs.config }}
@@ -50,11 +50,11 @@ jobs:
       # build the project in the specified mode
       - name: Build
         run: cmake --build build
-      # run the tests (for retry for transient AWS connectivity failures)
+      # run the tests
       - name: Test
         env:
-          IQM_BASE_URL: "https://resonance.meetiqm.com"
+          IQM_BASE_URL: "https://resonance.iqm.tech"
           IQM_QC_ALIAS: ${{ inputs.iqm-qc-alias }}
-          RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+          IQM_TOKEN: ${{ secrets.IQM_TOKEN }}
           IQM_CPP_API_LOG_LEVEL: "DEBUG"
         run: ctest --output-on-failure --test-dir build --timeout 600 --repeat until-pass:3

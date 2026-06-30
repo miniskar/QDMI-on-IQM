@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 3.24...4.2)
 project(
   iqm-qdmi-device
   LANGUAGES C CXX
-  VERSION 1.0.1
+  VERSION 1.1.1
   DESCRIPTION "Implementation of a QDMI device for IQM Quantum Computers")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -58,6 +58,7 @@ endif()
 
 option(BUILD_IQM_QDMI_TESTS "Build tests for the IQM QDMI device"
        ${IQM_QDMI_MASTER_PROJECT})
+option(BUILD_IQM_SPANK "Build the IQM SPANK plugin" OFF)
 option(BUILD_IQM_QDMI_DOCS "Build documentation for the IQM QDMI device" OFF)
 option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 
@@ -70,6 +71,11 @@ set(QDMI_TARGET_NAME "iqm-qdmi-device")
 # Add the main library code
 if(NOT USE_INSTALLED_IQM_QDMI_DEVICE)
   add_subdirectory(src)
+endif()
+
+# Add the SPANK plugin
+if(BUILD_IQM_SPANK)
+  add_subdirectory(spank)
 endif()
 
 # Add the documentation

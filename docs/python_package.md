@@ -6,17 +6,16 @@ mystnb:
   number_source_lines: true
 ---
 
-# Python Package
+# Easy Integration with the `iqm-qdmi` Python Package
 
-The Python package for this project is published on PyPI as `iqm-qdmi`.
-It provides a Python entry point for discovering installation paths that are useful
-when integrating the IQM QDMI Device into downstream build systems.
+To ease the distribution and integration of the IQM QDMI Device library, we have packaged it as a Python module available on PyPI under the name `iqm-qdmi`.
+This package provides a convenient way to discover installation paths and metadata that are useful when integrating the IQM QDMI Device into downstream build systems, such as CMake-based projects or Python workflows.
 
 ## Install From PyPI
 
 Use `uv` (or your Python package manager of choice) to install the package:
 
-```bash
+```console
 uv pip install iqm-qdmi
 ```
 
@@ -24,10 +23,10 @@ uv pip install iqm-qdmi
 
 The package itself makes the following variables available for import:
 
-- `__version__`: installed package version.
-- `IQM_QDMI_INCLUDE_DIR`: include directory for C/C++ headers.
-- `IQM_QDMI_CMAKE_DIR`: CMake package directory for `find_package` integration.
-- `IQM_QDMI_LIBRARY_PATH`: full path to the shared library.
+- {py:data}`~iqm.qdmi.__version__`: installed package version.
+- {py:data}`~iqm.qdmi.IQM_QDMI_INCLUDE_DIR`: include directory for C/C++ headers.
+- {py:data}`~iqm.qdmi.IQM_QDMI_CMAKE_DIR`: CMake package directory for `find_package` integration.
+- {py:data}`~iqm.qdmi.IQM_QDMI_LIBRARY_PATH`: full path to the shared library.
 
 ```{code-cell} ipython3
 from iqm.qdmi import __version__, IQM_QDMI_INCLUDE_DIR, IQM_QDMI_CMAKE_DIR, IQM_QDMI_LIBRARY_PATH
@@ -60,4 +59,27 @@ The above values can also be conveniently queried from the command line via the 
 
 ```{code-cell} ipython3
 !iqm-qdmi --lib_path
+```
+
+## Sampler and Estimator CLI Utilities
+
+If you install the package with the `qiskit` extra, the following additional command-line scripts are exposed:
+
+- `iqm-sampler` (see the {py:mod}`~iqm.qdmi.sampler` entry point module): Samples a serialized QPY circuit on the specified backend.
+- `iqm-estimator` (see the {py:mod}`~iqm.qdmi.estimator` entry point module): Variational Quantum Eigensolver (VQE) parameter estimation for a serialized ansatz and observable.
+
+### `iqm-sampler` Usage
+
+For example, to execute a QPY circuit file (`bell.qpy`):
+
+```console
+$ iqm-sampler bell.qpy --shots 128
+```
+
+### `iqm-estimator` Usage
+
+To run a parameter estimation job:
+
+```console
+$ iqm-estimator ansatz.qpy observable.pkl --maxiter 10
 ```

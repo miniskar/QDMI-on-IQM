@@ -17,7 +17,11 @@ permissions:
 jobs:
   change-detection:
     name: 🔍 Change
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@b59d15aa4f266e713afad51e132bde6e3a28a6b3 # v1.18.1
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@e7f84f39ce2d3b6c5d1d04526b8f94f98e455143 # v2.2.0
+    with:
+      additional-cd-files: |
+        spank/**
+        .github/workflows/spank-tests.yml
 
   cpp-tests-ubuntu:
     name: 🇨 Test 🐧
@@ -42,7 +46,7 @@ jobs:
       config: ${{ matrix.config }}
       iqm-qc-alias: ${{ matrix.iqm-qc-alias }}
     secrets:
-      RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   cpp-tests-macos:
     name: 🇨 Test 🍎
@@ -64,7 +68,7 @@ jobs:
       config: ${{ matrix.config }}
       iqm-qc-alias: ${{ matrix.iqm-qc-alias }}
     secrets:
-      RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   cpp-tests-windows:
     name: 🇨 Test 🏁
@@ -86,7 +90,7 @@ jobs:
       config: ${{ matrix.config }}
       iqm-qc-alias: ${{ matrix.iqm-qc-alias }}
     secrets:
-      RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   cpp-install-tests:
     name: 📦 Install
@@ -100,7 +104,7 @@ jobs:
     with:
       runs-on: ${{ matrix.runs-on }}
     secrets:
-      RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   cpp-coverage:
     name: 🇨 Coverage
@@ -111,7 +115,7 @@ jobs:
       contents: read
       id-token: write
     secrets:
-      RESONANCE_API_KEY: ${{ secrets.RESONANCE_API_KEY }}
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   cpp-linter:
     name: 🇨 Lint
@@ -130,11 +134,17 @@ jobs:
     name: 🐍 Lint
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-python-tests)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@b59d15aa4f266e713afad51e132bde6e3a28a6b3 # v1.18.1
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@e7f84f39ce2d3b6c5d1d04526b8f94f98e455143 # v2.2.0
     with:
       check-stubs: false
       enable-ty: true
       enable-mypy: false
+
+  examples:
+    name: 🐍 End-to-End Examples
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-python-tests)
+    uses: ./.github/workflows/python-examples.yml
 
   build-sdist:
     name: 🚀 CD
@@ -161,6 +171,16 @@ jobs:
     uses: ./.github/workflows/python-packaging-cibuildwheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
+    secrets:
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
+
+  spank-tests:
+    name: 🇸 Test SPANK
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-cpp-tests) || fromJSON(needs.change-detection.outputs.run-cd)
+    uses: ./.github/workflows/spank-tests.yml
+    secrets:
+      IQM_TOKEN: ${{ secrets.RESONANCE_API_KEY }}
 
   # this job does nothing and is only used for branch protection
   required-checks-pass:
@@ -175,8 +195,10 @@ jobs:
       - cpp-coverage
       - cpp-linter
       - python-linter
+      - examples
       - build-sdist
       - build-wheel
+      - spank-tests
     runs-on: ubuntu-slim
     steps:
       - name: Decide whether the needed jobs succeeded or failed
@@ -193,11 +215,15 @@ jobs:
             }}
             ${{
               fromJSON(needs.change-detection.outputs.run-python-tests)
-              && '' || 'python-linter,'
+              && '' || 'python-linter,examples,'
             }}
             ${{
-              fromJSON(needs.change-detection.outputs.run-cd)
+              (fromJSON(needs.change-detection.outputs.run-python-tests) || fromJSON(needs.change-detection.outputs.run-cd))
               && '' || 'build-sdist,'
+            }}
+            ${{
+              (fromJSON(needs.change-detection.outputs.run-cpp-tests) || fromJSON(needs.change-detection.outputs.run-cd))
+              && '' || 'spank-tests,'
             }}
             ${{
               (fromJSON(needs.change-detection.outputs.run-python-tests) || fromJSON(needs.change-detection.outputs.run-cd))

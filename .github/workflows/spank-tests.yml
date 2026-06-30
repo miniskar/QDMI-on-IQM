@@ -1,0 +1,30 @@
+name: 🇸 • Tests • SPANK
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "The ubuntu runner image to use."
+        default: "ubuntu-24.04"
+        type: string
+    secrets:
+      IQM_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  spank-tests:
+    name: 🐧 ${{ inputs.runs-on }}
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Build Docker image
+        run: docker build -t qdmi-spank-tests -f spank/Dockerfile .
+
+      - name: Run SPANK tests in Docker
+        env:
+          IQM_TOKEN: ${{ secrets.IQM_TOKEN }}
+        run: |
+          docker run --rm qdmi-spank-tests

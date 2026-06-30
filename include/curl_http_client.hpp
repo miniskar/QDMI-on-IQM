@@ -39,7 +39,8 @@ namespace iqm {
  *
  * The implementation includes:
  * - Bearer token authentication
- * - SSL certificate verification (disabled by default for development)
+ * - SSL certificate and hostname verification
+ * - Automatic retry on HTTP 429 rate limiting
  * - Request timeouts
  * - JSON content type for POST requests
  * - Custom headers support
@@ -60,6 +61,20 @@ public:
    */
   int get(const std::string &url, const std::string &bearer_token,
           std::string &response) override;
+
+  /**
+   * @brief Perform an optional HTTP GET request using cURL.
+   *
+   * Behaves like get(), but downgrades non-success logging for capability
+   * probes where missing endpoints are expected.
+   *
+   * @param url The target URL for the GET request.
+   * @param bearer_token The bearer token for authentication (can be empty).
+   * @param response Reference to string that will contain the response body.
+   * @return QDMI_SUCCESS on success, otherwise the mapped QDMI error code.
+   */
+  int get_optional(const std::string &url, const std::string &bearer_token,
+                   std::string &response) override;
 
   /**
    * @brief Perform an HTTP POST request using cURL.
